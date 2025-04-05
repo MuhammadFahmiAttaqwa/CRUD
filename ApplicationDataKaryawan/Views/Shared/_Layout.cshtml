@@ -1,0 +1,192 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Aplikasi Data Pribadi</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Applikasi Data Pribadi</a>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+     
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container-fluid">
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        function loadKaryawan(nama = "", nik = "") {
+            $.ajax({
+                url: "http://localhost:5074/api/karyawan/GetAllKaryawan",
+                type: "GET",
+                data: {
+                    nama: nama,
+                    nik: nik
+                },
+                dataType: "json",
+                success: function (response) {
+                    if (response.code === 200 && response.data.length > 0) {
+                        let tableBody = "";
+                        response.data.forEach((karyawan, index) => {
+                            tableBody += `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${karyawan.nik}</td>
+                                    <td>${karyawan.namaLengkap}</td>
+                                    <td>${karyawan.umur}</td>
+                                    <td>${new Date(karyawan.dateBirth).toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                    <td>${karyawan.gender}</td>
+                                    <td>${karyawan.alamat || '-'}</td>
+                                    <td>${karyawan.country}</td>
+                                    <td>
+                                            <a href="#" class="detail-link" data-id="${karyawan.nik}">Detail</a> |
+                                        <a href="#" class="edit-link" data-id="${karyawan.nik}">Edit</a> |
+                                        <a href="#" class="delete-link" data-nama="${karyawan.namaLengkap}" data-id="${karyawan.nik}">Delete</a>
+                                    </td>
+                                </tr>`;
+                        });
+
+                        $("#dataKaryawan").html(tableBody);
+                    } else {
+                        $("#dataKaryawan").html("<tr><td colspan='9' style='text-align:center;'>Data tidak ditemukan</td></tr>");
+                    }
+                },
+                error: function (xhr, status, error) {
+                    alert("Terjadi kesalahan: " + error);
+                }
+
+            });
+
+        }
+
+        loadKaryawan();
+
+        $("#Search").click(function () {
+            let nama = $("#SearchByName").val();
+            let nik = $("#SearchByNik").val();
+            loadKaryawan(nama, nik);
+        });
+    });
+
+    $(document).on("click", ".delete-link", function () {
+        deleteId = $(this).data("id"); 
+        let nama = $(this).data("nama"); 
+        $("#deleteMessage").text(`Anda yakin menghapus data ${nama} ?`);
+        $("#deleteModal").modal("show");
+    });
+    $("#batalButton").click(function () {
+        $("#deleteModal").modal("hide");
+    })
+
+    $("#confirmDelete").click(function () {
+        $.ajax({
+            url: "http://localhost:5074/api/karyawan/DeleteData", 
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(deleteId), 
+            success: function (response) {
+                if (response.code === 200) {
+                    alert("Data berhasil dihapus!");
+                    location.reload(); 
+                } else {
+                    alert("Gagal menghapus data: " + response.msg);
+                }
+            },
+            error: function (xhr, status, error) {
+                alert("Terjadi kesalahan: " + error);
+            }
+        });
+        $("#deleteModal").modal("hide");
+    })
+    function addData() {
+        $("#tabledata").addClass("d-none");
+        $("#SearchContainer").addClass("d-none")
+        $("#containerAddEdit").removeClass("d-none")
+        $("#btnSave").prop("disabled", false)
+        $("#nik").val('').prop("readonly", false);
+        $("#nama").val('').prop("readonly", false);
+        $("#tanggalLahir").val('').prop("readonly", false);
+        $("#alamat").val('').prop("readonly", false);
+        $("#negara").val('').prop("disabled", false);
+        $("input[name='gender']").prop("disabled", false);
+    }
+    $(document).on("click", ".edit-link, .detail-link", function (event) {
+        event.preventDefault();
+        $("#tabledata").addClass("d-none");
+        $("#SearchContainer").addClass("d-none");
+        $("#containerAddEdit").removeClass("d-none");
+
+        var nik = $(this).data("id");
+        var isDetailMode = $(this).hasClass("detail-link"); 
+
+        loadKaryawanData(nik, isDetailMode);
+    });
+
+    function loadKaryawanData(nik, isDetailMode) {
+        $.ajax({
+            type: "GET",
+            url: "http://localhost:5074/api/karyawan/GetKaryawan",
+            contentType: "application/json;charset=utf-8",
+            dataType: "json",
+            data: { nik: nik },
+            success: function (response) {
+                console.log("API Response:", response);
+                if (response.code === 200) {
+                    console.log("Data Karyawan:", response.data);
+                    populateForm(response.data, isDetailMode);
+                } else {
+                    alert(response.Msg);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error:", error);
+            }
+        });
+    }
+
+    function populateForm(data, isDetailMode) {
+        $("#titleform").html(isDetailMode ? "Detail Karyawan" : "Edit Data");
+
+        $("#nik").val(data.nik).prop("readonly", true);
+        $("#nama").val(data.name).prop("readonly", isDetailMode);
+        $("#tanggalLahir").val(data.dateBirth.split('T')[0]).prop("readonly", isDetailMode);
+        $("#alamat").val(data.alamat).prop("readonly", isDetailMode);
+        $("#negara").val(data.countryId).prop("disabled", isDetailMode);
+
+        $("input[name='gender']").each(function () {
+            if ($(this).val() == data.genderId) {
+                $(this).prop("checked", true);
+            }
+            $(this).prop("disabled", isDetailMode);
+        });
+
+        if (isDetailMode) {
+            $("#btnSave").prop('disabled', true);
+        } else {
+            $("#btnSave").prop('disabled', false);
+        }
+    }
+
+
+</script>
+<style type="text/css">
+
+</style>

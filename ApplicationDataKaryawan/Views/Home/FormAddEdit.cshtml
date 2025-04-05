@@ -1,0 +1,224 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .error-message {
+            color: red;
+            font-size: 0.875rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card mx-auto" style="max-width: 500px;">
+            <div class="card-body">
+                <h4 class="card-title text-center mb-4" id="titleform">Tambah Data</h4>
+                <form id="dataForm">
+
+                    <div class="mb-3">
+                        <label for="nik" class="form-label">NIK</label>
+                        <input type="text" class="form-control" id="nik" minlength="16" maxlength="16">
+                        <div class="error-message">NIK harus 16 digit.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nama" class="form-label">Nama Lengkap</label>
+                        <input type="text" class="form-control" id="nama">
+                        <div class="error-message">Nama lengkap harus diisi.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Jenis Kelamin</label>
+                        <div id="genderContainer">
+                        </div>
+                        <div class="error-message">Pilih salah satu jenis kelamin.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="tanggalLahir" class="form-label">Tanggal Lahir</label>
+                        <input type="date" class="form-control" id="tanggalLahir">
+                        <div class="error-message">Pilih tanggal lahir.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="alamat" class="form-label">Alamat</label>
+                        <textarea class="form-control" id="alamat" rows="3"></textarea>
+                        <div class="error-message">Alamat minimal 10 karakter.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="negara" class="form-label">Negara</label>
+                        <select class="form-select" id="negara">
+                            <option value="">Pilih Negara</option>
+                        </select>
+                        <div class="error-message">Pilih negara.</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" id="btnSave" class="btn btn-primary">Simpan</button>
+                        <button type="reset" class="btn btn-secondary">Kembali</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $.ajax({
+                url: "http://localhost:5074/api/karyawan/GetGender",
+                type: "GET",
+                dataType: "json",
+                success: function (response) {
+                    let genderContainer = $("#genderContainer");
+                    genderContainer.empty();
+
+                    if (response.data.length > 0) {
+                        response.data.forEach(gender => {
+                            genderContainer.append(`
+                                        <input type="radio" id="gender-${gender.id}" name="gender" value="${gender.id}">
+                                        <label for="gender-${gender.id}">${gender.gender}</label>
+                                    `);
+                        });
+                    } else {
+                        genderContainer.append("<p class='text-danger'>Gagal mengambil data gender.</p>");
+                    }
+                },
+                error: function () {
+                    alert("Gagal mengambil data Gender!");
+                }
+            });
+
+            $.ajax({
+                url: "http://localhost:5074/api/karyawan/GetCountry",
+                type: "GET",
+                dataType: "json",
+                success: function (response) {
+                    let countryDropdown = $("#negara");
+                    countryDropdown.empty();
+                    countryDropdown.append(`<option value="">Pilih Negara</option>`);
+
+                    response.data.forEach(country => {
+                        countryDropdown.append(`<option value="${country.id}">${country.country}</option>`);
+                    });
+                },
+                error: function () {
+                    alert("Gagal mengambil data Negara!");
+                }
+
+            });
+            $("#dataForm").submit(function (event) {
+                event.preventDefault(); 
+
+                let formData = {
+                    Nik: $("#nik").val(),
+                    NameLengkap: $("#nama").val(),
+                    Gender: $("input[name=gender]").val(),
+                    Alamat: $("#alamat").val(),
+                    Country: $("#negara").val(),
+                    DateBirth: $("#tanggalLahir").val()
+                    
+                };
+
+                $.ajax({
+                    url: "http://localhost:5074/api/karyawan/AddEditData",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(formData),
+                    success: function (response) {
+                        alert(response.msg);
+                        $("#containerAddEdit").addClass("d-none")
+                        $("#SearchContainer").removeClass("d-none")
+                        $("#tabledata").removeClass("d-none")
+                        location.reload()
+                    },
+                    error: function () {
+                        alert("Terjadi kesalahan saat menyimpan data!");
+                    }
+                });
+            });
+            $("#dataForm").on("reset", function () {
+                $("#containerAddEdit").addClass("d-none");
+                $("#SearchContainer").removeClass("d-none");
+                $("#tabledata").removeClass("d-none");
+            });
+
+            $("#dataForm").submit(function (event) {
+                event.preventDefault();
+                let isValid = true;
+
+                let nik = $("#nik");
+                if (nik.val().length !== 16) {
+                    showError(nik, "NIK harus 16 digit.");
+                    isValid = false;
+                } else {
+                    hideError(nik);
+                }
+
+                let nama = $("#nama");
+                if (nama.val().trim() === "") {
+                    showError(nama, "Nama lengkap harus diisi.");
+                    isValid = false;
+                } else {
+                    hideError(nama);
+                }
+
+                let gender = $("input[name='gender']:checked");
+                if (gender.length === 0) {
+                    showError($("input[name='gender']").first(), "Pilih salah satu jenis kelamin.");
+                    isValid = false;
+                } else {
+                    hideError($("input[name='gender']").first());
+                }
+
+                let tanggalLahir = $("#tanggalLahir");
+                if (tanggalLahir.val() === "") {
+                    showError(tanggalLahir, "Pilih tanggal lahir.");
+                    isValid = false;
+                } else {
+                    hideError(tanggalLahir);
+                }
+
+                let alamat = $("#alamat");
+                if (alamat.val().trim().length < 10) {
+                    showError(alamat, "Alamat minimal 10 karakter.");
+                    isValid = false;
+                } else {
+                    hideError(alamat);
+                }
+
+                let negara = $("#negara");
+                if (negara.val() === "") {
+                    showError(negara, "Pilih negara.");
+                    isValid = false;
+                } else {
+                    hideError(negara);
+                }
+
+                if (isValid) {
+                    alert("Data berhasil disimpan!");
+                }
+            });
+
+            function showError(element, message) {
+                let errorDiv = element.next(".error-message");
+                errorDiv.text(message).show();
+                element.addClass("is-invalid");
+            }
+
+            function hideError(element) {
+                let errorDiv = element.next(".error-message");
+                errorDiv.hide();
+                element.removeClass("is-invalid");
+            }
+        });
+    </script>
+
+</body>
+</html>

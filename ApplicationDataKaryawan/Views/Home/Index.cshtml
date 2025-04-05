@@ -1,0 +1,47 @@
+﻿@{
+    Layout = "_Layout";
+}
+
+<div class="container-shadow shadow-none p-3 mb-5 rounded" id="SearchContainer">
+    @Html.Partial("SearchKaryawan")
+    <div class="button-container">
+        <button class="btn btn-primary" id="Search">Search</button>
+        <button class="btn btn-primary" onclick="addData()">Add</button>
+    </div>
+</div>
+<div id="tabledata">
+    @Html.Partial("TableData")
+</div>
+<div class="">
+    @Html.Partial("PopUp")
+</div>
+<div class="container d-none" id="containerAddEdit"> 
+    @Html.Partial("FormAddEdit")
+</div>
+
+<style>
+    .container-shadow {
+        height: 250px;
+        padding: 15px;
+        border: 2px solid #dc9464 !important;
+        background-color: #fce4d6 !important;
+        position: relative; 
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .button-container {
+        position: absolute;
+        bottom: -20px;
+        right: 10px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        width: 120px;
+    }
+</style>
